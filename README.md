@@ -8,33 +8,33 @@
 
 ## Important Sources + Links.
 
-	* Source of course format/outline: [Link](https://github.com/rmcelreath/stat_rethinking_2022/blob/main/README.md#calendar--topical-outline).
+* Source of course format/outline: [Link](https://github.com/rmcelreath/stat_rethinking_2022/blob/main/README.md#calendar--topical-outline).
 
-	* Overall course materials: [Link](https://github.com/rmcelreath/stat_rethinking_2022).
+* Overall course materials: [Link](https://github.com/rmcelreath/stat_rethinking_2022).
 
-		+ [Alternative page](https://xcelab.net/rm/statistical-rethinking/).
++ [Alternative page](https://xcelab.net/rm/statistical-rethinking/).
 
-	* Textbook: [A Bayesian Course with Examples in R and Stan](https://sr2-solutions.wjakethompson.com/) (2nd edition).
+* Textbook: [A Bayesian Course with Examples in R and Stan](https://sr2-solutions.wjakethompson.com/) (2nd edition).
 
-		+ FREE from O’Reilly with Washington University in St. Louis affiliated account.
++ FREE from O’Reilly with Washington University in St. Louis affiliated account.
 
-	* Textbook Solutions: [Statistical Rethinking: Solutions](https://sr2-solutions.wjakethompson.com/) (2nd Edition).
+* Textbook Solutions: [Statistical Rethinking: Solutions](https://sr2-solutions.wjakethompson.com/) (2nd Edition).
 
-	* Lectures: [Youtube playlist](https://www.youtube.com/playlist?list=PLDcUM9US4XdMROZ57-OIRtIK0aOynbgZN).
+* Lectures: [Youtube playlist](https://www.youtube.com/playlist?list=PLDcUM9US4XdMROZ57-OIRtIK0aOynbgZN).
 
-	* Homeworks and Solutions: [Link](https://github.com/rmcelreath/stat_rethinking_2022/tree/main/homework).
+* Homeworks and Solutions: [Link](https://github.com/rmcelreath/stat_rethinking_2022/tree/main/homework).
 
-	* R Package Installation Instructions: [rstan, cmdstanr, & rethink packages](https://github.com/rmcelreath/rethinking/#installation).
+* R Package Installation Instructions: [rstan, cmdstanr, & rethink packages](https://github.com/rmcelreath/rethinking/#installation).
 
 ## [Coding Updates + Conversions](https://github.com/rmcelreath/stat_rethinking_2022/blob/main/README.md#coding).
 
 “This course involves a lot of scripting. Students can engage with the material using either the original R code examples or one of several conversions to other computing environments. The conversions are not always exact, but they are rather complete. Each option is listed below. I also list conversions <[here](https://xcelab.net/rm/statistical-rethinking/)>.” Updates & conversions include:
 
-	* R + Tidyverse + ggplot2 + brms.
+* R + Tidyverse + ggplot2 + brms.
 
-	* Python.
+* Python.
 
-	* Julia & Turing.
+* Julia & Turing.
 
 ## Course Outline
 
