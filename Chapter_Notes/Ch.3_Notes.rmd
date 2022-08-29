@@ -1,0 +1,97 @@
+---
+title: "Ch.3_Notes"
+author: "Patrick Edwards"
+date: '2022-06-01'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Reminder: how to compute the posterior using grid approximation (where posterior means the probability of $p$ conditional on the data):
+```{r}
+p_grid <- seq(from=0 , to=1 , length.out=1000 )
+
+prob_p <- rep( 1 , 1000 )
+
+prob_data <- dbinom( 6 , size=9 , prob=p_grid )
+
+posterior <- prob_data * prob_p
+
+posterior <- posterior / sum(posterior)
+```
+
+Next, sample 10,000 values from the posterior. "Provided the bucket is well mixed, the resulting samples will have the same proportions as the exact posterior density. Therefore the individual values of p will appear in our samples in proportion to the posterior plausibility of each value."
+```{r}
+samples <- sample( p_grid , prob=posterior , size=1e4 , replace=TRUE )
+```
+
+  * `sample`: randomly pulls values from a vector
+  
+  * `p_grid`: the vector `sample` randomly pulls values from. This is the grid of parameter values.
+  
+  * `posterior`: gives the probability of each value.
+  
+
+PLOTS:
+
+First plot: "In this plot, it’s as if you are flying over the posterior distribution, looking down on it. There are many more samples from the dense region near 0.6 and very few samples below 0.25."
+```{r}
+plot(samples)
+```
+
+
+Second plot: "the plot shows the density estimate computed from these samples. You can see that the estimated density is very similar to ideal posterior you computed via grid approximation. If you draw even more samples, maybe 1e5 or 1e6, the density estimate will get more and more similar to the ideal."
+```{r}
+library(rethinking)
+
+dens( samples )
+```
+
+ANSWERING DIFFERENT QUESTIONS/INTERPRETATIONS.
+
+(1) intervals of defined boundaries
+```{r}
+# add up posterior probability where p < 0.5
+
+sum( posterior[ p_grid < 0.5 ] )
+# ~17% of the posterior probability is below 0.5.
+```
+
+"perform the same calculation using samples from the posterior. This approach does generalize to complex models with many parameters, and so you can use it everywhere. All you have to do is similarly add up all of the samples below 0.5, but also divide the resulting count by the total number of samples. In other words, find the frequency of parameter values below 0.5:"
+```{r}
+sum( samples < 0.5 ) / 1e4
+```
+
+"Using the same approach, you can ask how much posterior probability lies between 0.5 and 0.75"
+```{r}
+sum( samples > 0.5 & samples < 0.75 ) / 1e4
+# ~61% of the posterior probability lies between 0.5 and 0.75. 
+```
+
+
+(2) questions about intervals of defined probability mass (usually known as **CONFIDENCE INTERVALS**). Author calls them "**COMPATIBILITY INTERVALS**" instead to avoid the unwarranted implications of “confidence” and “credibility.”
+
+**COMPATIBILITY INTERVAL**: indicates a range of parameter values compatible with the model and data. The model and data themselves may not inspire confidence, in which case the interval will not either.
+
+  * They "report two parameter values that contain between them a specified amount of posterior probability, a probability mass."
+  
+Q: What's the boundaries of the lower 80% posterior probability? 
+```{r}
+# Starts at p = 0.
+quantile( samples , 0.8 )
+# ends at p = 0.7608.
+```
+
+Q: What are the endpoints of the middle 80%?
+```{r}
+quantile( samples, c( 0.1 , 0.9 ) )
+```
+
+
+
+(3) questions about point estimates
+
+

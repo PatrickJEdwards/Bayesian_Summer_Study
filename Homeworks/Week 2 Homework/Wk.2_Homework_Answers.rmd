@@ -1,0 +1,279 @@
+---
+title: "Wk.2_Homework_Answers"
+author: "Patrick Edwards"
+date: '2022-06-08'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Week 2 Homework Answers
+
+## Problem 1:
+
+### P1 Question: 
+
+Construct a linear regression of weight as predicted by height, using the adults (age 18 or greater) from the Howell1 dataset. The heights listed below were recorded in the !Kung census, but weights were not recorded for these individuals. Provide predicted weights and 89% compatibility intervals for each of these individuals. That is, fill in the table below, using model-based predictions.
+
+### P1 Answer:
+
+Load Data:
+```{r}
+# Load library & Data:
+library(rethinking)
+library(tidyverse)
+library(dplyr)
+data(Howell1)
+
+# Place data in object:
+d <- Howell1
+```
+
+Filter out adults:
+```{r}
+d2 <- d[d$age >= 18,]
+```
+
+Perform regression:
+```{r}
+dat <- list(
+  H = d2$height,
+  W = d2$weight,
+  Hbar <- mean(d2$height),
+  Wbar <- mean(d2$weight)
+)
+
+Hbar <- mean(d2$height)
+Wbar <- mean(d2$weight)
+
+
+m_validate <- quap(
+  alist(
+    ## Likelihood:
+    W ~ dnorm(mu, sigma),
+    ## Linear model:
+    mu <- a + b*(H - Hbar),
+    ## Priors:
+    a ~ dnorm(60,10),
+    b <- dlnorm(0,1),
+    sigma ~ exp(1)
+  ), data = dat
+)
+
+precis(m_validate)
+# a = 45
+# b = 0.63
+
+# Sample/simulate a list of 10,000 values of mu from the posterior.
+post <- extract.samples(m_validate, n = 1e4)
+
+post[1:5,]
+
+precis(post)
+```
+
+
+Next, we need to find the **posterior PREDICTION interval** for *actual* heights, not just the average height ($\mu$). This means incorporating standard deviation (\sigma) and uncertainty.
+
+(from book): "For any unique weight value, you sample from a Gaussian distribution with the correct mean $\mu$ for that weight, using the correct value of $\sigma$ sampled from the same posterior distribution. If you do this for every sample from the posterior, for every weight value of interest, you end up with a collection of simulated heights that embody the uncertainty in the posterior as well as the uncertainty in the Gaussian distribution of heights."
+
+```{r}
+# First, define a sequence of weights to compute predictions for:
+H.seq <- c(140, 160, 175)
+
+# Use `sim` to simulate weights and, thus, do what is written above:
+sim.W <- sim(
+  m_validate,
+  data = list(H = H.seq)
+)
+# This outputs a matrix with `ncol(H.seq)` columns and `n` rows. These are simulated weights for every height value in `H.seq`. 
+
+# Find compatibility intervals using the `apply` function:
+P1_table <- apply(
+  X = sim.W,
+  MARGIN = 2,
+  FUN = PI
+)
+
+P1_table
+
+P1_table2 <- P1_table %>%
+  as_tibble(rownames = "Statistic") %>%
+  rename(
+    "140" = "V1",
+    "160" = "V2",
+    "175" = "V3"
+  ) %>%
+  add_row(
+    .before = 1,
+    Statistic = NA,
+    "140" = apply(sim.W, 2, mean)[1],
+    "160" = apply(sim.W, 2, mean)[2],
+    "175" = apply(sim.W, 2, mean)[3],
+  ) %>%
+  mutate(
+    Statistic = replace(
+      x = Statistic,
+      is.na(Statistic),
+      "Predicted Weight"
+    )
+  )
+
+# ANSWER:
+P1_table2
+```
+
+
+### P2 Question:
+
+From the Howell1 dataset, consider only the people younger than 13 years old. Estimate the causal association between age and weight. Assume that age influences weight through two paths. First, age influences height, and height influences weight. Second, age directly influences weight through age-related changes in muscle growth and body proportions. All of this implies this causal model (DAG):
+(LOOK AT DAG)
+Use a linear regression to estimate the total (not just direct) causal effect of each year of growth on weight. Be sure to carefully consider the priors. Try using prior predictive simulation to assess what they imply.
+
+### P2 Answer:
+
+```{r}
+# Include only children
+children <- Howell1[Howell1$age < 13, ]
+
+# find variables.
+dat2 <- list(
+  H = (children$height),
+  W = (children$weight),
+  A = (children$age)
+)
+```
+
+To consider the **total** effect of age on weight, omit height from the regression entirely.
+
+```{r}
+# Regress weight on age alone, excluding height.
+new_validate <- quap(
+  alist(
+    ## Likelihood:
+    W ~ dnorm(mu, sigma),
+    ## Linear model:
+    mu <- a + bA*A,
+    ## Priors:
+    a ~ dnorm(5,1),
+    bA <- dlnorm(0,1),
+    sigma ~ dexp(1)
+  ), 
+  data = dat2
+)
+
+output <- precis(new_validate)
+output
+```
+
+My priors imply a joint prior distribution of individual heights. We simulate from this distribution to see what these priors imply about observable height. This is done using **prior predictive simulations**.
+
+```{r}
+n = 50
+tibble(
+  group = seq_len(n),
+  alpha = rnorm(n, 4, 1),
+  beta = rlnorm(n, 0, 1)
+) %>%
+  expand(
+    nesting(
+      group, 
+      alpha, 
+      beta), 
+    age = 0:12
+  ) %>%
+  mutate(weight = alpha + beta * age) %>%
+  ggplot(
+    aes(
+      x = age, 
+      y = weight, 
+      group = group
+    )
+  ) +
+  geom_line() +
+  scale_x_continuous(breaks = seq(0, 12, 2)) +
+  coord_cartesian(
+    xlim = c(0, 12), 
+    ylim = c(0, 30)
+  ) +
+  labs(
+    x = "Age", 
+    y = "Weight"
+  )
+```
+
+These are the priors I've selected and the potential relationships between weight and age that they imply. 
+
+To interpet the graph, a one year increase in age is associated with a 1.29 to 1.46 kilogram increase in weight, on average.
+
+
+### P3: Now suppose the causal association between age and weight might be different for boys and girls. Use a single linear regression, with a categorical variable for sex, to estimate the total causal effect of age on weight separately for boys and girls. How do girls and boys differ? Provide one or more posterior contrasts as a summary
+
+### P3 Answer:
+
+```{r}
+# Again, include only children. Find relevant variables:
+dat3 <- list(
+  H = children$height,
+  W = children$weight,
+  A = children$age,
+  S = children$male + 1
+    # sex = 1: female
+    # sex = 2: male.
+)
+
+# Calculate regression:
+m_was <- quap(
+  alist(
+    # Likelihood:
+    W ~ dnorm(mu, sigma),
+    # Linear model:
+    mu <- a[S] + b[S]*A,
+    # Priors (assign same prior to alpha for each sex):
+    a[S] ~ dnorm(5, 1),
+    b[S] <- dlnorm(6, 1),
+    sigma ~ dexp(1)
+  ), 
+  data = dat3
+)
+
+# Find posterior mean/distribution:
+post <- extract.samples(m_was)
+str(post)
+precis(post, hist = FALSE)
+```
+
+Graph difference in regression lines:
+```{r}
+d <- Howell1[Howell1$age < 13, ]
+
+plot( d$age , d$weight , lwd=3, col=ifelse(d$male==1,4,2) ,
+xlab="age (years)" , ylab="weight (kg)" )
+Aseq <- 0:12
+
+# Girls:
+muF <- link(m_was, data = list(A=Aseq,S=rep(1,13)))
+shade( apply(muF,2,PI,0.99) , Aseq , col=col.alpha(2,0.5) )
+lines( Aseq , apply(muF,2,mean) , lwd=3 , col=2 )
+
+# Boys:
+muM <- link(m_was, data = list(A=Aseq,S=rep(2,13)))
+shade( apply(muM,2,PI,0.99) , Aseq , col=col.alpha(4,0.5) )
+lines( Aseq , apply(muM,2,mean) , lwd=3 , col=4 )
+
+# contrast at each age
+Aseq <- 0:12
+mu1 <- sim(m_was,data=list(A=Aseq,S=rep(1,13)))
+mu2 <- sim(m_was,data=list(A=Aseq,S=rep(2,13)))
+mu_contrast <- mu1
+for ( i in 1:13 ) mu_contrast[,i] <- mu2[,i] - mu1[,i]
+plot( NULL , xlim=c(0,13) , ylim=c(-15,15) , xlab="age" ,
+ylab="weight difference (boys-girls)" )
+for ( p in c(0.5,0.67,0.89,0.99) )
+shade( apply(mu_contrast,2,PI,prob=p) , Aseq )
+abline(h=0,lty=2,lwd=2)
+```
+
+

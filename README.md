@@ -38,4 +38,4 @@
 
 ## Course Outline
 
-Not reproduced here. See google doc or source document for course outline.
+Not reproduced here. See [google doc](https://docs.google.com/document/d/1-kfc8ezSkhfLzRhBoSPFdNrpI6pBYLpFPfKUR1pcDxk/edit#heading=h.x7ngdrh42vqv) or source document for [course outline](https://github.com/rmcelreath/stat_rethinking_2022).

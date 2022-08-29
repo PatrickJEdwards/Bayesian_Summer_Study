@@ -1,0 +1,153 @@
+---
+title: "Wk1_HW_Ans"
+author: "Patrick Edwards"
+date: '2022-06-02'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# PROBLEM 1.
+First, define the grid:
+```{r}
+p_grid <- seq(
+  from = 0,
+  to = 1,
+  length.out = 20
+)
+```
+
+Second, define prior:
+```{r}
+prior <- rep(1, 20)
+```
+
+Third, compute likelihood at each value in the grid:
+```{r}
+# x = number of waters `W` out of `size` trials:
+likelihood <- dbinom(4, size = 15, prob = p_grid)
+```
+
+Fourth, compute product of likelihoods and priors:
+```{r}
+unstd.posterior <- likelihood * prior
+```
+
+Fifth, standardize the posterior, so it sums to 1:
+```{r}
+posterior <- unstd.posterior / sum(unstd.posterior)
+```
+
+Sixth, plot the new grid:
+```{r}
+plot(
+  p_grid, 
+  posterior, 
+  type = "b",
+  xlab = "probability of water", 
+  ylab = "posterior probability"
+)
+mtext("20 points")
+```
+
+
+```{r}
+p_grid <- seq( from=0 , to=1 , length.out=1000 )
+prior <- rep( 1 , 1000 )
+prob_data <- dbinom( 4 , size=4+11 , prob=p_grid )
+posterior <- prob_data * prior
+posterior <- posterior / sum(posterior)
+set.seed(100)
+samples <- sample( p_grid , prob=posterior , size=1e4 , replace=TRUE )
+
+plot(
+  p_grid, 
+  posterior, 
+  type = "b",
+  xlab = "probability of water", 
+  ylab = "posterior probability"
+)
+mtext("20 points")
+```
+
+
+
+# PROBLEM 2.
+
+Now suppose the data are 4 water and 2 land. Compute the posterior
+again, but this time use a prior that is zero below p = 0.5 and a constant
+above p = 0.5. This corresponds to prior information that a majority of the
+Earth’s surface is water.
+
+```{r}
+p_grid <- seq(from = 0, to = 1, length = 1000)
+
+prior <- ifelse(p_grid > 0.5, 1, 0)
+
+likelihood <- dbinom(4, 6, p_grid)
+
+posterior <- likelihood * prior
+
+posterior <- posterior/sum(posterior)
+
+plot(
+  p_grid, 
+  posterior, 
+  type = "b",
+  xlab = "probability of water", 
+  ylab = "posterior probability"
+)
+mtext("1000 points")
+
+```
+
+
+# PROBLEM 3. 
+For the posterior distribution from 2, compute 89% percentile and HPDI intervals. Compare the widths of these intervals. Which is wider? Why? If you had only the information in the interval, what might you misunderstand about the shape of the posterior distribution?
+
+```{r}
+# Sampling:
+samples <- sample(
+  p_grid , 
+  prob = posterior , 
+  size = 1e4, 
+  replace = TRUE
+)
+
+# Percentile Interval:
+
+PI(samples, .89)
+
+# HPDI Interval:
+
+PI <- PI(samples, .90)
+HPDI <- HPDI(samples, prob = 0.90)
+
+
+range(PI)[2] - range(PI)[1]
+#0.3533534
+
+range(HPDI)[2] - range(HPDI)[1]
+# 0.3413413
+
+plot(
+  p_grid, 
+  posterior, 
+  type = "b",
+  xlab = "probability of water", 
+  ylab = "posterior probability",
+)
+abline(v = range(PI)[2], col = "blue")
+abline(v = range(PI)[1], col = "blue")
+abline(v = range(HPDI)[2], col = "red")
+abline(v = range(HPDI)[1], col = "red")
+
+# The HPDI interval is narrower than the PI interval because it includes only the most probable 89% of the posterior distribution. In other words, the HPDI includes the "tallest" or "highest" 89% of the distribution. The PI, on the other hand, contains only the MIDDLE 89% of the distribution.
+
+# If you only looked at the intervals, then you wouldn't realize that there's a discontinuity in the posterior distribution at 50%.
+```
+
+
+

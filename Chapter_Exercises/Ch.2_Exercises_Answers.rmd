@@ -1,0 +1,329 @@
+---
+title: "Ch.2_Exercises"
+author: "Patrick Edwards"
+date: '2022-05-31'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+2E1. statements (2), (4). The second is the conditional probability definition.
+
+
+2E2. statement (3)
+
+
+2E3. statements (2), (4)
+
+
+2E4. DONE.
+
+
+2M1. compute and plot the grid approximate posterior distribution for each of the following set of observations. Assume a uniform prior for $p$.
+
+Observations:
+
+  1. WWW
+  
+  2. WWWL
+  
+  3. LWWLWWW
+
+First, define the grid:
+```{r}
+p_grid <- seq(
+  from = 0,
+  to = 1,
+  length.out = 20
+)
+```
+
+Second, define prior:
+```{r}
+prior1 <- rep(1, 20)
+```
+
+Third, compute likelihood at each value in the grid:
+```{r}
+# x = number of waters `W` out of `size` trials:
+likelihood1 <- dbinom(3, size = 3, prob = p_grid)
+likelihood2 <- dbinom(3, size = 4, prob = p_grid)
+likelihood3 <- dbinom(5, size = 7, prob = p_grid)
+```
+
+Fourth, compute product of likelihoods and priors:
+```{r}
+unstd.posterior1 <- likelihood1 * prior
+unstd.posterior2 <- likelihood2 * prior
+unstd.posterior3 <- likelihood3 * prior
+```
+
+Fifth, standardize the posterior, so it sums to 1:
+```{r}
+posterior1 <- unstd.posterior1 / sum(unstd.posterior1)
+posterior2 <- unstd.posterior2 / sum(unstd.posterior2)
+posterior3 <- unstd.posterior3 / sum(unstd.posterior3)
+```
+
+Sixth, plot the new grid:
+```{r}
+# set 1:
+plot(
+  p_grid, 
+  posterior1, 
+  type = "b",
+  xlab = "probability of water", 
+  ylab = "posterior probability"
+)
+mtext("20 points")
+
+# set 2:
+plot(
+  p_grid, 
+  posterior2, 
+  type = "b",
+  xlab = "probability of water", 
+  ylab = "posterior probability"
+)
+mtext("20 points")
+
+# set 3:
+plot(
+  p_grid, 
+  posterior3, 
+  type = "b",
+  xlab = "probability of water", 
+  ylab = "posterior probability"
+)
+mtext("20 points")
+```
+
+
+2M2. Now assume a prior for p that is equal to zero when p < 0.5 and is a positive constant when p ≥ 0.5. Again compute and plot the grid approximate posterior distribution for each of the sets of observations in the problem just above.
+
+First, set new prior:
+```{r}
+prior_2M2 <- c(
+  rep(0, 10),
+  rep(1, 10)
+)
+```
+
+Second, compute new product of likelihoods and priors:
+```{r}
+unstd.posterior1_2M2 <- likelihood1 * prior_2M2
+unstd.posterior2_2M2 <- likelihood2 * prior_2M2
+unstd.posterior3_2M2 <- likelihood3 * prior_2M2
+```
+
+third, compute new standardized posterior, so it sums to 1:
+```{r}
+posterior1_2M2 <- unstd.posterior1_2M2 / sum(unstd.posterior1_2M2)
+posterior2_2M2 <- unstd.posterior2_2M2 / sum(unstd.posterior2_2M2)
+posterior3_2M2 <- unstd.posterior3_2M2 / sum(unstd.posterior3_2M2)
+```
+
+fourth, plot the new grid:
+```{r}
+# set 1:
+plot(
+  p_grid, 
+  posterior1_2M2, 
+  type = "b",
+  xlab = "probability of water", 
+  ylab = "posterior probability"
+)
+mtext("20 points")
+
+# set 2:
+plot(
+  p_grid, 
+  posterior2_2M2, 
+  type = "b",
+  xlab = "probability of water", 
+  ylab = "posterior probability"
+)
+mtext("20 points")
+
+# set 3:
+plot(
+  p_grid, 
+  posterior3_2M2, 
+  type = "b",
+  xlab = "probability of water", 
+  ylab = "posterior probability"
+)
+mtext("20 points")
+```
+
+
+2M3. Suppose there are two globes, one for Earth and one for Mars. The Earth globe is 70% covered in water. The Mars globe is 100% land. Further suppose that one of these globes—you don’t know which—was tossed in the air and produced a “land” observation. Assume that each globe was equally likely to be tossed. Show that the posterior probability that the globe was the Earth, conditional on seeing “land” (Pr(Earth|land)), is 0.23.
+
+$$
+Pr(Earth | Land) = \frac{Pr(Land | Earth) \cdot Pr(Earth)}{Pr(Land)} \\
+= \frac{0.3 \cdot 0.5}{\frac{0.3 + 1}{2}} \\
+= \frac{0.15}{0.65} \\
+= 0.2307692
+$$
+
+
+2M4. Suppose you have a deck with only three cards. Each card has two sides, and each side is either black or white. One card has two black sides. The second card has one black and one white side. The third card has two white sides. Now suppose all three cards are placed in a bag and shuffled. Someone reaches into the bag and pulls out a card and places it flat on a table. A black side is shown facing up, but you don’t know the color of the side facing down. Show that the probability that the other side is also black is 2/3. Use the counting method (Section 2 of the chapter) to approach this problem. This means counting up the ways that each card could produce the observed data (a black side facing up on the table).
+
+There are three cases where you can get a black card:
+
+  1. BB
+  
+  2. BB
+  
+  3. BW
+  
+In 2/3 of these cases, the other side is black. therefore the solution is 2/3
+
+
+2M5. Now suppose there are four cards: B/B, B/W, W/W, and another B/B. Again suppose a card is drawn from the bag and a black side appears face up. Again calculate the probability that the other side is black.
+
+```{r}
+BB_likelihood <- 2
+BW_likelihood <- 1
+WW_likelihood <- 0
+
+priors <- c(1,1,1,1) # Weighted equally.
+
+likelihood <- c(BB_likelihood, BW_likelihood, WW_likelihood, BB_likelihood)
+
+posterior <- priors * likelihood
+
+# Normalize/standardize so it sums to 1
+posterior <- posterior/sum(posterior)
+
+posterior
+
+# Add up the BB_likelihood spots:
+posterior[1] + posterior[4]
+
+# ANSWER: 0.8
+```
+
+
+2M6. Imagine that black ink is heavy, and so cards with black sides are heavier than cards with white sides. As a result, it’s less likely that a card with black sides is pulled from the bag. So again assume there are three cards: B/B, B/W, and W/W. After experimenting a number of times, you conclude that for every way to pull the B/B card from the bag, there are 2 ways to pull the B/W card and 3 ways to pull the W/W card. Again suppose that a card is pulled and a black side appears face up. Show that the probability the other side is black is now 0.5. Use the counting method, as before.
+
+```{r}
+BB_likelihood <- 2
+BW_likelihood <- 1
+WW_likelihood <- 0
+
+priors <- c(1,2,3)
+
+likelihood <- c(BB_likelihood, BW_likelihood, WW_likelihood)
+
+posterior <- likelihood*priors
+
+posterior <- posterior/sum(posterior)
+
+posterior[1]
+```
+
+
+2M7. Assume again the original card problem, with a single card showing a black side face up. Before looking at the other side, we draw another card from the bag and lay it face up on the table. The face that is shown on the new card is white. Show that the probability that the first card, the one showing a black side, has black on its other side is now 0.75. Use the counting method, if you can. Hint: Treat this like the sequence of globe tosses, counting all the ways to see each observation, for each possible first card.
+
+```{r}
+BB_likelihood <- 2 * 3
+BW_likelihood <- 1 * 2
+WW_likelihood <- 0 * 1
+
+likelihood <- c(BB_likelihood, BW_likelihood, WW_likelihood)
+priors <- c(1,1,1)
+
+posterior <- priors * likelihood
+
+posterior <- posterior/sum(posterior)
+
+posterior[1]
+```
+
+
+2H1. Suppose there are two species of panda bear. Both are equally common in the wild and live in the same places. They look exactly alike and eat the same food, and there is yet no genetic assay capable of telling them apart. They differ however in their family sizes. Species A gives birth to twins 10% of the time, otherwise birthing a single infant. Species B births twins 20% of the time, otherwise birthing singleton infants. Assume these numbers are known with certainty, from many years of field research. Now suppose you are managing a captive panda breeding program. You have a new female panda of unknown species, and she has just given birth to twins. What is the probability that her next birth will also be twins?
+
+```{r}
+A_likelihood <- 0.1
+B_likelihood <- 0.2
+likelihood <- c(A_likelihood, B_likelihood)
+
+priors <- c(1,1)
+
+# Calculate posterior probability that panda is from each species:
+posterior <- priors * likelihood
+posterior <- posterior/sum(posterior)
+posterior
+
+# Next, use these to find the probability that the next one will be twins.
+sum(posterior * likelihood)
+
+# 16.7% probability that the panda has twins
+```
+
+
+2H2. Recall all the facts from the problem above. Now compute the probability that the panda we have is from species A, assuming we have observed only the first birth and that it was twins.
+
+Find $Pr(A | twins) = \frac{Pr(twins | A) \cdot Pr(A)}{Pr(twins)}$.
+
+```{r}
+## METHOD: use Bayes' theorem.
+# Fine Pr(twins | A):
+TgA <- 0.1
+A <- 0.5
+T <- 0.1 * 0.5 + 0.2 * 0.5
+
+AgT <- (TgA * A)/T
+
+## ALTERNATIVE METHOD:
+# Likelihood that each species has twins:
+A_likelihood <- 0.1
+B_likelihood <- 0.2
+likelihood <- c(A_likelihood, B_likelihood)
+
+priors <- c(1,1)
+
+posterior <- likelihood * priors
+
+# Calculate posterior probability that panda is from each species:
+posterior <- posterior/sum(posterior)
+posterior
+```
+Probability that its species A given that it had twins is 33.33%
+
+
+2H3. Continuing on from the previous problem, suppose the same panda mother has a second birth and that it is not twins, but a singleton infant. Compute the posterior probability that this panda is species A.
+
+
+```{r}
+# Computer likelihood of observed data:
+A_likelihood <- 0.1 * 0.9
+B_likelihood <- 0.2 * 0.8
+likelihood <- c(A_likelihood, B_likelihood)
+
+# Same priors:
+priors <- c(1,1)
+
+# Compute posterior:
+posterior <- likelihood * priors
+posterior <- posterior/sum(posterior)
+posterior
+
+```
+Probability that the panda is species A given that its first birth was twins and second birth was singleton is 36%.
+
+
+2H4. Part 1: find probability that panda is species A given a positive test.
+```{r}
+# Use Bayes's Rule:
+AgP <- 0.8
+prior <- 0.5
+pos <- 0.5 * 0.8 + 0.5 * 0.35
+
+(AgP * prior)/pos
+```
+
+

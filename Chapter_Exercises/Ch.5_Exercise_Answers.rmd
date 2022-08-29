@@ -1,0 +1,259 @@
+---
+title: "Ch.5_Exercise_Answers.rmd"
+author: "Patrick Edwards"
+date: '2022-06-22'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+# FIX ISSUE WITH plot():
+setMethod(
+  "plot", 
+  "coeftab", 
+  function(x,y,...) coeftab_plot(x,y,...) 
+)
+getMethod("plot", "coeftab")
+```
+
+
+
+# Chapter 5 Exercise Answers.
+
+## 5E1. Which of the linear models below are multiple linear regressions?
+
+Linear models (2), (4).
+
+
+## 5E2. Write down a multiple regression to evaluate the claim: *Animal diversity is linearly related to latitude, but only after controlling for plant diversity*. You just need to write down the model definition.
+
+$$
+Y_i \sim \text{Normal}(\mu, \sigma) \\
+
+\mu_i = \alpha + \beta_1 X_i + \beta_2 Z_i \\
+
+Y: \text{ animal diversity} \\
+X: \text{ latitude} \\
+Z: \text{ plant diversity} \\
+$$
+
+
+## 5E3. Write down a multiple regression to evaluate the claim: *Neither amount of funding nor size of laboratory is by itself a good predictor of time to PhD degree; but together these variables are both positively associated with time to degree*. Write down the model definition and indicate which side of zero each slope parameter should be on.
+
+$$
+T: \text{ time to PhD degree} \\
+F: \text{ amount of funding} \\
+S: \text{ size of laboratory} \\
+
+T_i \sim \text{Normal}(\mu, \sigma) \\
+
+\mu_i = \alpha + \beta_1 F + \beta_2 S
+$$
+
+$\beta_1 > 0$, $\beta_2 > 0$. Each variable would show insignificance if they are negatively correlated. In other words, PhD programs with small laboratories had less funding, and PhD programs with large laboratories offered more funding. Once controlled for, however, we would find that both variables are positively correlated with time to PhD program.
+
+
+## 5E4. Suppose you have a single categorical predictor with 4 levels (unique values), labeled A, B, C and D. Let $A_i$ be an indicator variable that is 1 where case i is in category A. Also suppose $B_i$, $C_i$, and $D_i$ for the other categories. Now which of the following linear models are inferentially equivalent ways to include the categorical variable in a regression? Models are inferentially equivalent when it’s possible to compute one posterior distribution from the posterior distribution of another model.
+
+Models (1), (3), (4), and (5). Models (1) and (3) leave out a reference category. Model (4) is equivalent to the index variable approach. And model (5) is mathematically equivalent to model (4).
+
+
+## 5M1. Invent your own example of a spurious correlation. An outcome variable should be correlated with both predictor variables. But when both predictors are entered in the same model, the correlation between the outcome and one of the predictors should mostly vanish (or at least be greatly reduced).
+
+**Example Description**: countries' foreign trade is highly correlated with regime type such that democracies are most likely to trade with democracies and authoritarian regimes with other authoritarian regimes. When we control for trade distance, however, the relationship between foreign trade and regime type should weaken considerably. This is because countries of similar regime types tend to cluster together for historical reasons: democracies are common in North/South America, Europe, and Australasia, while authoritarian regimes cluster in Africa, the Middle East, and much of Asia.
+
+Variables:
+
+  * T: foreign trade.
+  
+  * R: regime type.
+  
+  * D: trade distance.
+  
+DAG:
+```{r}
+install.packages("dagitty")
+library(dagitty)
+
+dag5M1 <- dagitty(
+  "dag{R -> T; D -> T; D -> R}"
+)
+
+coordinates(dag5M1) <- list(
+  x = c(
+    T = 1,
+    R = 0,
+    D = 2
+  ),
+  y = c(
+    T = 0,
+    R = 1,
+    D = 1
+  )
+)
+
+rethinking::drawdag(dag5M1)
+```
+
+
+## 5M2. Invent your own example of a masked relationship. An outcome variable should be correlated with both predictor variables, but in opposite directions. And the two predictor variables should be correlated with one another.
+
+Variables:
+
+  * Outcome variable: future earnings (F).
+  
+  * Predictor variable 1: severity of parents' mental illnesses (P).
+  
+  * Predictor variable 2: innate ability (I)
+
+**Example Description**: the severity of one's parents' mental illnesses likely negatively affects one's future income by reducing the quality of one's parenting growing up. At the same time, one's innate ability positively affects one's future earnings by increasing one's ability to gain an education. In addition, parental mental illness is likely correlated with innate ability because parental mental illnesses are usually genetically heritable and can interfere with a child's ability to take advantage of their innate ability. 
+
+Thus, $I \rightarrow_{+} F$ and $P \rightarrow_{-} F$ but $I$ and $P$ are correlated such that, if one variable isn't included, it reduces the significance of the other variable and, thus, weakens the true relationship.
+
+
+## 5M3.  It is sometimes observed that the best predictor of fire risk is the presence of firefighters---States and localities with many firefighters also have more fires. Presumably firefighters do not cause fires. Nevertheless, this is not a spurious correlation. Instead fires cause firefighters. Consider the same reversal of causal inference in the context of the divorce and marriage data. How might a high divorce rate cause a higher marriage rate? Can you think of a way to evaluate this relationship, using multiple regression?
+
+A high divorce rate means that there are more people available in the population of single-people that are available to marry. Additionally, people may be getting divorced for the specific purpose of marrying someone else. To evaluate this, we could add marriage number, or a “re-marry” indicator. We would then expect the coefficient for marriage rate to get closer to zero once this predictor is added to the model.
+
+
+## 5M4. In the divorce data, States with high numbers of members of the Church of Jesus Christ of Latter-day Saints (LDS) have much lower divorce rates than the regression models expected. Find a list of LDS population by State and use those numbers as a predictor variable, predicting divorce rate using marriage rate, median age at marriage, and percent LDS population (possibly standardized). You may want to consider transformations of the raw percent LDS variable.
+
+```{r}
+# Load LDS data:
+morm <- read.csv("~/1. Washington University in St. Louis/6. Summer 2022/1. Bayesian Study Group/Chapter_Exercises/Ch.5_Exercise_Anwers_5M4.txt")
+
+# Load marriage rate data:
+library(rethinking)
+data("WaffleDivorce")
+
+# Create percent variable, then create variable for "LDS members per 100,000 population.
+library(dplyr)
+colnames(morm)
+lds <- morm %>%
+  mutate(
+    ldsper = members/population,
+    lds100k = ldsper * 100000
+  ) %>%
+  select(state, ldsper, lds100k)
+  
+# Merge datasets:
+divorcedata <- WaffleDivorce %>%
+  as_tibble() %>%
+  select(Location, Divorce, Marriage, MedianAgeMarriage) %>%
+  left_join(
+    lds, 
+    by = c("Location" = "state")
+  )
+
+# transform lds data using `log`, then standardize all variables.
+div <- divorcedata %>%
+  mutate(lds100k = log(lds100k)) %>%
+  mutate(
+    across(
+      where(is.numeric),
+      standardize
+    )
+  ) %>%
+  filter(!is.na(lds100k)) %>%
+  rename(
+    D = Divorce,
+    M = Marriage,
+    A = MedianAgeMarriage,
+    L = lds100k
+  )
+
+# Overview of variables:
+colnames(div)
+
+##    Outcome: D = Divorce rate 
+## Predictors: L = LDS members per 100k
+##             M = Marriage Rate
+##             A = Median Age at Marriage
+
+funlist <- alist(
+  # likelihood:
+  D ~ dnorm(mu, sigma),
+  
+  # Linear model:
+  mu <- a + bL*L + bM*M + bA*A,
+  
+  # Priors:
+  a ~ dnorm(0, 0.2),
+  bL ~ dnorm(0, 0.5),
+  bM ~ dnorm(0, 0.5),
+  bA ~ dnorm(0, 0.5),
+  sigma ~ dexp(1)
+)
+
+# Run `quap` function:
+Ex5M4 <- quap(
+  flist = funlist,
+  data = div
+)
+
+precis(Ex5M4)
+```
+
+Visualize results:
+```{r}
+plot(
+  coeftab(Ex5M4),  
+  par=c("bL", "bA","bM") 
+)
+```
+
+
+Or do it like the guy who wrote the solutions manual does it:
+```{r}
+library(rethinking)
+library(brms)
+library(dplyr)
+library(tidyr)
+#install.packages("tidybayes")
+library(tidybayes)
+
+# Load data:
+morm <- read.csv("~/1. Washington University in St. Louis/6. Summer 2022/1. Bayesian Study Group/Chapter_Exercises/Ch.5_Exercise_Anwers_5M4.txt")
+
+lds <- morm %>%
+  mutate(lds_prop = members / population,
+         lds_per_capita = lds_prop * 100000)
+
+data("WaffleDivorce")
+lds_divorce <- WaffleDivorce %>%
+  as_tibble() %>%
+  select(Location, Divorce, Marriage, MedianAgeMarriage) %>%
+  left_join(select(lds, state, lds_per_capita),
+            by = c("Location" = "state")) %>%
+  mutate(lds_per_capita = log(lds_per_capita)) %>%
+  mutate(across(where(is.numeric), standardize)) %>% 
+  filter(!is.na(lds_per_capita))
+
+# estimate model:
+lds_mod <- brm(Divorce ~ 1 + Marriage + MedianAgeMarriage + lds_per_capita,
+               data = lds_divorce, family = gaussian,
+               prior = c(prior(normal(0, 0.2), class = Intercept),
+                         prior(normal(0, 0.5), class = b, coef = Marriage),
+                         prior(normal(0, 0.5), class = b, coef = MedianAgeMarriage),
+                         prior(normal(0, 0.5), class = b, coef = lds_per_capita),
+                         prior(exponential(1), class = sigma)),
+               iter = 4000, warmup = 2000, chains = 4, cores = 4, seed = 1234)
+
+# Visualize model: 
+spread_draws(lds_mod, `b_.*`, regex = TRUE) %>%
+  pivot_longer(starts_with("b_"), names_to = "parameter",
+               values_to = "value") %>%
+  ggplot(aes(x = value, y = parameter)) +
+  stat_halfeye(.width = c(0.67, 0.89, 0.97)) +
+  labs(x = "Parameter Value", y = "Parameter")
+```
+
+**Interpretation from solutions**: Finally, we can visualize our estimates. The intercept and coefficients for Marriage and MedianAgeMarriage are nearly identical to those from model m5.3 in the text. Thus, it appears that our new predictor, LDS per capita, is contributing unique information. As expected, a higher population of LDS members in a state is associated with a lower divorce rate.
+
+## 5M5.
+
+

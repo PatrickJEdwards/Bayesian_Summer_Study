@@ -1,0 +1,356 @@
+---
+title: "Ch.6_Exercises.rmd"
+author: "Patrick Edwards"
+date: '2022-07-12'
+output: 
+  html_document:
+    extra_dependencies:
+      tikz: null
+      
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include = FALSE}
+# FIX ISSUE WITH plot():
+setMethod("plot" , "compareIC" , function(x,y,xlim,SE=TRUE,dSE=TRUE,weights=FALSE,...) {
+    dev_in <- x[[1]] - x[[5]]*2 # criterion - penalty*2
+    dev_out <- x[[1]]
+    if ( !is.null(x[['SE']]) ) devSE <- x[['SE']]
+    dev_out_lower <- dev_out - devSE
+    dev_out_upper <- dev_out + devSE
+    if ( weights==TRUE ) {
+        dev_in <- ICweights(dev_in)
+        dev_out <- ICweights(dev_out)
+        dev_out_lower <- ICweights(dev_out_lower)
+        dev_out_upper <- ICweights(dev_out_upper)
+    }
+    n <- length(dev_in)
+    if ( missing(xlim) ) {
+        xlim <- c(min(dev_in),max(dev_out))
+        if ( SE==TRUE & !is.null(x[['SE']]) ) {
+            xlim[1] <- min(dev_in,dev_out_lower)
+            xlim[2] <- max(dev_out_upper)
+        }
+    }
+    main <- colnames(x)[1]
+    set_nice_margins()
+    dotchart( dev_in[n:1] , labels=rownames(x)[n:1] , xlab="deviance" , pch=16 , xlim=xlim , ... )
+    points( dev_out[n:1] , 1:n )
+    mtext(main)
+    # standard errors
+    if ( !is.null(x[['SE']]) & SE==TRUE ) {
+        for ( i in 1:n ) {
+            lines( c(dev_out_lower[i],dev_out_upper[i]) , rep(n+1-i,2) , lwd=0.75 )
+        }
+    }
+    if ( !all(is.na(x@dSE)) & dSE==TRUE ) {
+        # plot differences and stderr of differences
+        dcol <- col.alpha("black",0.5)
+        abline( v=dev_out[1] , lwd=0.5 , col=dcol )
+        diff_dev_lower <- dev_out - x$dSE
+        diff_dev_upper <- dev_out + x$dSE
+        if ( weights==TRUE ) {
+            diff_dev_lower <- ICweights(diff_dev_lower)
+            diff_dev_upper <- ICweights(diff_dev_upper)
+        }
+        for ( i in 2:n ) {
+            points( dev_out[i] , n+2-i-0.5 , cex=0.5 , pch=2 , col=dcol )
+            lines( c(diff_dev_lower[i],diff_dev_upper[i]) , rep(n+2-i-0.5,2) , lwd=0.5 , col=dcol )
+        }
+    }
+})
+```
+
+
+# 6.6 Practice Problems.
+
+## 6E1. List three mechanisms by which multiple regression can produce false inferences about causal effects.
+
+  1. **Multi-collinearity**: occurs when two predictor variables of interest are highly correlated with one another such that they eat into each others' correlation with the outcome variable of interest.
+  
+  2. **Post-Treatment Bias**: occurs when all or part of your predictor variable of interest's causal effect on the outcome variable of interest is mediated through some third variable, and this third variable is included in the multiple regression. 
+  
+  3. **Collider Bias**: occurs when your predictor and outcome variables of interest *cause* an third variable, and this third variable is included in the multiple regression as an unwitting control.
+
+
+## 6E2. For one of the mechanisms in the previous problem, provide an example of your choice, perhaps from your own research.
+
+Many economic variables are highly correlated with each other, such that the inclusion of one economic variable will make the others less significant.
+
+
+## 6E3. List the four elemental confounds. Can you explain the conditional dependencies of each?
+
+  * **The Pipe**: $X \rightarrow B \rightarrow Y$. $X$ and $Y$ are independent, conditioning on $B$.
+  
+  * **The Fork**: $X \leftarrow U \rightarrow Y$. $X$ and $Y$ are independent, conditioning on $U$.
+  
+  * **The Collider**: $X \rightarrow U \leftarrow Y$. $X$ and $Y$ are NOT independent, conditioning on $U$.
+  
+  * **The Descendent**: $X \rightarrow Z \leftarrow Y; Z \rightarrow D$. The consequences of conditioning on the descendent $D$ depends on the nature of its parent variable. In this case, the parent variable $Z$ acts as a collider for $X$ and $Y$. Thus, $X$ and $Y$ are NOT independent, conditioning on $D$.
+
+
+## 6E4. How is a biased sample like conditioning on a collider? Think of the example at the open of the chapter.
+
+A biased sample involves the selective inclusion of some observations in the population but not others along some parameter. In the example from the beginning of the chapter, studies are awarded grants based on their NOTEWORTHINESS and QUALITY. The easiest way for a study to obtain a high composite score is to rank highly in either NOTEWORTHINESS or QUALITY but not both. Thus, in the biased sample of only those studies that get awarded grants, there will be a negative correlation between NOTEWORTHINESS and QUALITY that doesn't exist in real life.
+
+For collider bias, some confounding variable $C$ has causal relationships with the predictor variable of interest $X$ and the outcome variable of interest $Y$, even though no causal relationship exists between $X$ and $Y$ alone. If we condition on $C$ in the regression of $Y$ on $X$, then a *backdoor* path opens between $X$ and $Y$ where information can flow between the two variables despite no causal relationship existing.
+
+How are biased samples like conditioning on a collider? Well, if the selection process is systematically *censoring* values of $X$ and $Y$ out of the sample when $X$ and $Y$ are uncorrelated in the population, then a *backdoor* path between $X$ and $Y$ is created through which information flows, as if we conditioned on some collider variable. 
+
+
+## 6M1. Modify the DAG on page 186 to include the variable $V$, and unobserved cause of $C$ and $Y$: $C \leftarrow V \rightarrow Y$. Reanalyze the DAG. How many paths connect $X$ to $Y$? Which must be closed? Which variables should you condition on now?
+
+```{r}
+library(dagitty)
+library(rethinking)
+
+dag_6.1 <- dagitty("dag {
+  U [unobserved]
+  V [unobserved]
+  C <- V -> Y
+  X -> Y
+  X <- U <- A -> C -> Y
+  U -> B <- C
+}")
+
+coordinates(dag_6.1) <- list(
+  x = c(
+    U = 0,
+    X = 0,
+    Y = 1,
+    A = .5,
+    B = .5,
+    C = 1,
+    V = 1.5
+  ),
+  y = c(
+    U = .5,
+    X = 0,
+    Y = 0,
+    A = .7,
+    B = .3,
+    C = .5,
+    V = .25
+  )
+)
+
+drawdag(dag_6.1)
+
+
+```
+
+Now, there are 5 paths connecting $X$ to $Y$:
+
+  1. $X \rightarrow Y$.
+
+  2. $X \leftarrow U \rightarrow B \leftarrow C \rightarrow Y$.
+  
+  3. $X \leftarrow U \leftarrow A \rightarrow C \rightarrow Y$.
+  
+  4. $X \leftarrow U \rightarrow B \leftarrow C \leftarrow V \rightarrow Y$.
+  
+  5. $X \leftarrow U \leftarrow A \rightarrow C \leftarrow V \rightarrow Y$.
+  
+Which must now be closed?
+
+  1. path 1 is our desired relationship, not closed.
+  
+  2. involves colliders, not closed.
+  
+  3. fork, needs to be closed.
+  
+  4. Involves colliders, not closed.
+  
+  5. fork, needs to be closed.
+  
+CONDITION on A!!
+
+Confirm:
+```{r}
+adjustmentSets( dag_6.1 , exposure="X" , outcome="Y")
+# Correct!
+```
+
+
+## 6M2. Sometimes, in order to avoid multicollinearity, people inspect pairwise correlations among predictors before including them in a model. This is a bad procedure, because what matters is the conditional association, not the association before the variables are included in the model. To highlight this, consider the DAG X → Z → Y. Simulate data from this DAG so that the correlation between X and Z is very large. Then include both in a model prediction Y. Do you observe any multicollinearity? Why or why not? What is different from the legs example in the chapter?
+
+Simulate the DAG X → Z → Y: 
+```{r}
+# number of individuals
+N <- 1000
+
+# Simulate X:
+X <- rnorm(
+  N,
+  mean = 50,
+  sd = 1
+)
+
+# Simulate Z, including X and random noise:
+Z <- X + rnorm(
+  N,
+  mean = 0,
+  sd = 0.2
+)
+
+# Simulate Y, including Z and random noise:
+
+Y <- Z + rnorm(
+  N,
+  mean = 0,
+  sd = 0.5
+)
+
+plot(X, Z)
+plot(Z, Y)
+plot(X, Y)
+
+# Put in dataframe:
+df <- data.frame(X, Y, Z)
+```
+
+Check for multicollinearity:
+```{r}
+library(rethinking)
+
+# Priors:
+mean(Y) # alpha = 50ish
+
+# Model:
+ch6.m3.full <- quap(
+  alist(
+    Y ~ dnorm(mu, sigma),
+    mu <- a + bX*X + bZ*Z,
+    a ~ dnorm(50, 100),
+    bX ~ dnorm(0, 100),
+    bZ ~ dnorm(0, 100),
+    sigma ~ dexp(1)
+  ),
+  data = df
+)
+
+precis(ch6.m3.full)
+
+plot(precis(ch6.m3.full))
+
+
+# Try individual regressions:
+ch6.m3.X <- quap(
+  alist(
+    Y ~ dnorm(mu, sigma),
+    mu <- a + bX*X,
+    a ~ dnorm(50, 100),
+    bX ~ dnorm(0, 100),
+    sigma ~ dexp(1)
+  ),
+  data = df
+)
+precis(ch6.m3.X)
+
+ch6.m3.Z <- quap(
+  alist(
+    Y ~ dnorm(mu, sigma),
+    mu <- a + bZ*Z,
+    a ~ dnorm(50, 100),
+    bZ ~ dnorm(0, 100),
+    sigma ~ dexp(1)
+  ),
+  data = df
+)
+precis(ch6.m3.Z)
+
+
+```
+
+# Find posterior distribution:
+```{r}
+post <- extract.samples(ch6.m3.full)
+
+
+plot( bX ~ bZ , post , col=col.alpha(rangi2,0.1) , pch=16 )
+```
+
+"In the model summary, we can see that both x and z have estimates with relatively narrow posterior distributions. This is in contrast to the example of legs in the chapter, where the estimated standard deviations of the beta parameters were much larger than the magnitudes of the parameters, and the posterior distributions had significant overlap. Thus, it does not appear as though we are observing multicollinearity."
+
+"This is due to the causal model that gave rise to this (simulated) data. In the legs example from the chapter, both legs predicted height (left DAG below). In this example, only $Z$ predicts the outcome. In DAG language, $Z$ is a pipe. Therefore, when the model is estimated, the golem is looking at what $X$ tells us, conditional on $Z$. The answer in this case is “not much” because $X$ and $Z$ are highly correlated, which is why the posterior for $X$ is centered on zero. The leg model does not condition on either of the predictors, as both have direct paths to the outcome variable. Thus, whether or not a model has multicollinearity depends not only on the pairwise relationship, but also the causal model."
+
+
+## 6M3. Learning to analyze DAGs requires practice. For each of the four DAGs below, state which variables, if any, you must adjust for (condition on) to estimate the total causal influence of X on Y. 
+
+```{r}
+library(dagitty)
+```
+
+
+**DAG 1 (upper left)**: condition on Z
+
+  1. X → Y. desired relationship, keep open.
+  
+  2. X ← Z → Y. want to close, condition on Z
+  
+  3. X ← Z ← A → Y. fork via A, close by including Z.
+  
+```{r}
+dag1 <- dagitty("dag{ X <- Z <- A -> Y <- X; Y <- Z }")
+adjustmentSets(dag1, exposure = "X", outcome = "Y")
+```
+
+
+**DAG 2 (upper right)**: condition on A
+
+  1. X → Y. desired.
+  
+  2. X -> Z -> Y. Pipe through Z. don't close because part of the effect of X on Y is through Z. 
+  
+  3. X -> Z <- A -> Y. A is a collider THROUGH Z, so do not condition. Do not add more variables.
+
+```{r}
+dag2 <- dagitty("dag{
+                X -> Y;
+                X -> Z -> Y;
+                X -> Z <- A -> Y
+}")
+adjustmentSets(dag2, exposure = "X", outcome = "Y")
+```
+
+
+**DAG 3 (lower left)**: condition on nothing.
+
+  1. X -> Y; desired, don't close.
+  
+  2. X -> Z <- Y; Z is collider, closed by not conditioning on Z.
+  
+  3. X <- A -> Z <- Y; A is a collider through Z and a pipe through X. Do not condition on A
+
+```{r}
+dag3 <- dagitty("dag{
+                X -> Y;
+                X -> Z <- Y;
+                X <- A -> Z <- Y;
+}")
+adjustmentSets(dag3, exposure = "X", outcome = "Y")
+```
+
+
+**DAG 4 (lower right)**:
+
+  1. X -> Y; desired.
+  
+  2. X -> Z -> Y; Z is a pipe. causal, do not condition on.
+  
+  3. X <- A -> Z -> Y; A is a FORK (directly on X, indirectly through Y). Do not condition on A
+
+```{r}
+dag4 <- dagitty("dag{
+                X -> Y;
+                X -> Z -> Y;
+                X <- A -> Z -> Y;
+}")
+adjustmentSets(dag4, exposure = "X", outcome = "Y")
+```
+
+
+

@@ -1,0 +1,85 @@
+---
+title: "Ch.7_Notes.rmd"
+author: "Patrick Edwards"
+date: '2022-07-12'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Chapter 7: Ulysses' Compass
+
+**Ockham's Razor**: *Models with fewer assumptions are to be preferred*, a loose principle frequently cited by scientists.
+
+-   Ockham's razor can be difficult to use generally because we frequently choose between models that differ in both their accuracy *and* their simplicity.
+
+-   "How are we to trade these different criteria against one another? The razor offers no guidance."
+
+**THREE FUNDAMENTAL KINDS OF STATISTICAL ERROR**:
+
+-   **OVERFITTING**: leads to poor prediction by learning too much from the data.
+
+-   **UNDERFITTING**: leads to poor prediction by learning too little from the data.
+
+-   **CONFOUNDING**: (covered in chapter 6).
+
+As shown in this chapter, confounded models can in fact produce better predictions than models that correctly measure a causal relationship.
+
+When we design any particular statistical model, we must *decide whether we want to understand causes or rather just predict*.
+
+Two common families of approaches to navigating *overfitting*, *underfitting*, and *confounding*:
+
+1.  Use a **REGULARIZING PRIOR** to tell the model not to get too excited by the data. Non-Bayesian methods refer to this device as "*penalized likelihood*"
+
+2.  use some scoring device, like **INFORMATION CRITERIA** or **CROSS-VALIDATION**, to model the prediction task and estimate predictive accuracy.
+
+Both families of approaches are routinely used in the natural and social sciences.
+
+-   They can be---maybe should be---used in combination.
+
+This chapter introduces **INFORMATION THEORY**.
+
+-   Once you start using information criteria---this chapter describes AIC, DIC, WAIC, and PSIS---you'll find that implementing them is much easier than understanding them.
+
+**Rethinking: Stargazing.**
+
+-   The most common form of model selection among practicing scientists is to search for a model in which every coefficient is statistically significant.
+
+-   But such a model is not best. Whatever you think about null hypothesis significance testing in general, using it to select among structurally different models is a mistake---p-values are not designed to help you navigate between underfitting and overfitting.
+
+-   As you'll see once you start using AIC and related measures, predictor variables that improve prediction are not always statistically significant. It is also possible for variables that are statistically significant to do nothing useful for prediction. Since the conventional 5% threshold is purely conventional, we shouldn't expect it to optimize anything.
+
+## 7.1 The Problem with Parameters.
+
+Sometimes we don't care about causal inference and only want to make good predictions. But this DOES NOT mean we should now add *EVERY* variable to the model.
+
+There are two related problems with just adding variables:
+
+1.  adding parameters---making the model more complex---nearly always improves the fit of a model to the data.
+
+    -   *FIT* means a measure of how well the model can retrodict the data used to fit the model.
+
+    -   In OLS models, \$R\^2\$ is a common measure of fit.
+
+    -   Like other measures of fit to sample, R2 increases as more predictor variables are added.
+
+        -   This is true even when the variables you add to a model are just random numbers, with no relation to the outcome.
+
+    -   So it's no good to choose among models using only fit to the data.
+
+2.  While more complex models fit the data better, they often predict new data worse.
+
+    -   Models that have many parameters tend to overfit more than simpler models.
+
+        -   This means that a complex model will be very sensitive to the exact sample used to fit it, leading to potentially large mistakes when future data is not exactly like the past data.
+
+    -   But simple models, with too few parameters, tend instead to underfit, systematically over-predicting or under-predicting the data, regardless of how well future data resemble past data.
+
+    -   So we can't always favor either simple models or complex models.
+
+
+### 7.1.1. More Parameters (Almost) Always Improve Fit.
+
+
